@@ -1,6 +1,8 @@
 # Lux AI Challenge Season 2 Specifications
 
-For documentation on the API, see [this document](https://github.com/Lux-AI-Challenge/Lux-Design-S2/blob/main/kits/). To get started developing a bot, see our [Github](https://github.com/Lux-AI-Challenge/Lux-Design-S2). We are always looking for feedback and bug reports, if you find any issues with the code, specifications etc. please ping us on [Discord](https://discord.gg/aWJt3UAcgn) or post a [GitHub Issue](https://github.com/Lux-AI-Challenge/Lux-Design-S2/issues)
+For documentation on the API, see [this document](https://github.com/Lux-AI-Challenge/Lux-Design-S2/blob/main/kits/). To get started developing a bot, see our [Github](https://github.com/Lux-AI-Challenge/Lux-Design-S2). For *Advanced* specs documentation that goes over the actual engine code implementation, see [this document](https://github.com/Lux-AI-Challenge/Lux-Design-S2/blob/main/docs/advanced_specs.md).
+
+We are always looking for feedback and bug reports, if you find any issues with the code, specifications etc. please ping us on [Discord](https://discord.gg/aWJt3UAcgn) or post a [GitHub Issue](https://github.com/Lux-AI-Challenge/Lux-Design-S2/issues)
 
 
 ## Background
@@ -65,7 +67,7 @@ There are two kinds of raw resources: Ice and Ore which can be refined by a fact
 
 ## Starting Phase
 
-During the first turn of the game, each player is given the map, starting resources (`N` factories and `N*150` water and ore), and are asked to bid for who goes first/second. Each 1 bid removes 1 water and 1 ore from that player's starting resources. Each player responds in turn 1 with their bid, which can be positive to prefer going first or negative to prefer going second.
+During the first turn of the game, each player is given the map, starting resources (`N` factories and `N*150` water and metal), and are asked to bid for who goes first/second. Each 1 bid removes 1 water and 1 ore from that player's starting resources. Each player responds in turn 1 with their bid, which can be positive to prefer going first or negative to prefer going second.
 
 Whichever player places the highest absolute bid loses that amount of water and ore from their starting resources and gets to place first (or second if they bid a negative value). If both players tie in bid amount, then the first player / player_0 wins the bid.
 
@@ -76,11 +78,11 @@ _Strategy Tip_: Going first is not always advantageous!
 
 [Robots](#robots) and [Factories](#factories) can perform actions each turn given certain conditions and enough power to do so. In general, all actions are simultaneously applied and are validated against the state of the game at the start of a turn. Each turn players can give an action to each factory and a queue of actions to each robot. 
 
-[Robots](#robots) always execute actions from an action queue (limited to 20 items) while factories directly execute actions. Each robot action in the queue has an `n` value and a `repeat` value. `n` represents the number of times the robot will execute a particular action before removing it from the front of the queue and `repeat` is whether or not to replace the action to the back of the queue once it's been removed from the front.
+[Robots](#robots) always execute actions from an action queue (limited to 20 items) while factories directly execute actions. Each robot action in the queue has an `n` value and a `repeat` value. `n` represents the number of times the robot will execute a particular action before removing it from the front of the queue. If `repeat == 0`, the action is **removed from the queue once completed** `n` times. If `repeat > 0`, then **we recycle the action to the back of the action queue** with `n = repeat` now. 
 
 An action is considered executed if it's valid against current state, namely there is sufficient power to perform the action. If it's not valid, that turn it will not count towards `n`.
 
-Submitting a new action queue for a robot requires the robot to use additional power to replace it's action queue. It costs an additional 1 power for Lights, an additional 10 power for Heavies (two weight classes of robots). The new action queue is then stored and wipes out what was stored previously. If the robot does not have enough power, the action queue is simply not replaced.
+Submitting a new action queue for a robot requires the **robot to use additional power to replace it's action queue**. It costs an additional 1 power for Lights, an additional 10 power for Heavies (two weight classes of robots). The new action queue is then stored and wipes out what was stored previously. If the robot does not have enough power, the action queue is simply not replaced.
 
 `repeat = True` allows you to design action queues that repeat infinitely and don't need any updates, saving power. `n` allows for generally more complex action sequences to be designed in an action queue which is limited to 20 actions.
 
@@ -248,7 +250,7 @@ Each factory can perform one of the following actions
 
 * Build a light robot
 * Build a heavy robot
-* Grow lichen - Waters [lichen](#lichen) around the factory, costing `ceil(connected lichen tiles / 10)` water
+* Grow lichen - Waters [lichen](#lichen) around the factory, costing `ceil(# connected and new lichen tiles / 10)` water. (Note that in starter kits the exact water cost is not provided, only a conservative estimate)
 
 The following is the cost to build the two classes of robots. Note that also robots when built will have their battery charged up to the power cost.
 
@@ -287,7 +289,7 @@ Lichen serves two purposes.
 1. At the end of the game, the amount of lichen on each square that a player owns is summed and **whoever has a higher value wins the game.**
 2. For each tile with lichen attached to a [Factory](#factories), that factory gains an extra power per turn.
 
-At the start, factories can perform the water action to start or continue lichen growing. Taking this action will seed lichen in all orthogonally adjacent squares to the factory if there is no rubble present (total of 3*4=12). Whenever a tile has a lichen value of 20 or more and is watered, it will spread lichen to adjacent tiles without rubble, resources, or factories and give them lichen values of 1. The amount of water consumed by the water action grows with the number of tiles with lichen on them connected to the factory according to `ceil(# connected lichen tiles / 10)`. In each tile a maximum of 100 lichen value can be stored.
+At the start, factories can perform the water action to start or continue lichen growing. Taking this action will seed lichen in all orthogonally adjacent squares to the factory if there is no rubble present (total of 3*4=12). Whenever a tile has a lichen value of 20 or more and is watered, it will spread lichen to new adjacent tiles without rubble, resources, or factories and give them lichen values of 1. The amount of water consumed by the water action grows with the number of tiles with lichen on them connected to the factory according to `ceil(# connected and new lichen tiles / 10)`. In each tile a maximum of 100 lichen value can be stored.
 
 All factories have their own special strains of lichen that can’t mix, so lichen tiles cannot spread to tiles adjacent to lichen tiles from other factories. This is for determinism and simplified water costs.
 

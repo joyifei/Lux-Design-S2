@@ -1,5 +1,23 @@
 # ChangeLog
 
+### v2.1.1
+
+Remove max episode timesteps from gym registration of the Lux AI env. Expect user to specify themselves
+
+
+### v2.1.0
+
+Added [advanced_specs](https://github.com/Lux-AI-Challenge/Lux-Design-S2/blob/main/docs/advanced_specs.md) document that goes over CPU engine code in depth
+
+Fix bug where repeated actions had their `n` value reset to 1. 
+
+Actions specify `n` and `repeat` but they are now slightly modified. `n` is the current execution count of an action, meaning the robot will try to execute it `n` times (with unsuccesful attempts due to e.g. lack of power not counting). `n` is decremented for each successful execution. `repeat` is no longer a boolean and is now an int. if `repeat == 0`, then after `n` goes to 0, the action is removed from the action queue, If `repeat > 0`, then after `n` goes to 0, we **recycle** the action to the back of the action queue and **set n = repeat**. 
+
+Fix bug where two heavies entering a tile can both get destroyed if a single light unit there has more power.
+
+Fix bug where clearing action queues with an empty action queue `[]` was not permitted.
+
+Java kit and updated JS, C++ kits are merged in.
 ### v2.0.6
 
 Fix bug where no seed provided to CLI meant no random maps
