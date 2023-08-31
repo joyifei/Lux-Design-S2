@@ -1,6 +1,7 @@
 import {
   Board,
   Episode,
+  EpisodeMetadata,
   Faction,
   Factory,
   FactoryAction,
@@ -128,9 +129,25 @@ export function isLuxAIS2Episode(data: any): boolean {
   return typeof data === 'object' && data.observations !== undefined && data.actions !== undefined;
 }
 
-export function parseLuxAIS2Episode(data: any, teamNames: [string, string] = ['Player A', 'Player B']): Episode {
+export function parseLuxAIS2Episode(data: any, extra: Partial<EpisodeMetadata> = {}): Episode {
   if (data.observations[0].board.valid_spawns_mask === undefined) {
     throw new Error('Only Lux AI v1.1.0+ episodes are supported');
+  }
+
+  let metadata: EpisodeMetadata = { teamNames: ['Player A', 'Player B'], seed: undefined };
+  metadata = {
+    ...metadata,
+    ...extra,
+  };
+  if (data.metadata) {
+    if (data.metadata['players']) {
+      for (let i = 0; i < 2; i++) {
+        metadata.teamNames[i] = data.metadata['players'][`player_${i}`];
+      }
+    }
+    if (data.metadata['seed']) {
+      metadata.seed = data.metadata['seed'];
+    }
   }
 
   const steps: Step[] = [];
@@ -188,13 +205,14 @@ export function parseLuxAIS2Episode(data: any, teamNames: [string, string] = ['P
     const teams: Team[] = [];
     for (let j = 0; j < 2; j++) {
       const playerId = `player_${j}`;
+      let error: string | null = null;
 
       if (obs.teams[playerId] === undefined) {
         const rawPlayer =
           data.observations[1].teams[playerId] !== undefined ? data.observations[1].teams[playerId] : null;
 
         teams.push({
-          name: teamNames[j],
+          name: metadata.teamNames[j],
           faction: rawPlayer !== null ? rawPlayer.faction : Faction.None,
 
           water: 0,
@@ -203,10 +221,14 @@ export function parseLuxAIS2Episode(data: any, teamNames: [string, string] = ['P
           factories: [],
           robots: [],
 
+          strains: new Set(),
+
           placeFirst: rawPlayer !== null ? rawPlayer.place_first : false,
           factoriesToPlace: rawPlayer !== null ? rawPlayer.factories_to_place : 0,
 
           action: actions[playerId] !== null ? parseSetupAction(actions[playerId]) : null,
+
+          error,
         });
 
         continue;
@@ -225,6 +247,10 @@ export function parseLuxAIS2Episode(data: any, teamNames: [string, string] = ['P
           }
         }
 
+        if (actions[playerId] === null) {
+          error = 'Actions object is null';
+        }
+
         factories.push({
           unitId,
 
@@ -237,7 +263,10 @@ export function parseLuxAIS2Episode(data: any, teamNames: [string, string] = ['P
           cargo: rawFactory.cargo,
 
           strain: rawFactory.strain_id,
-          action: actions[playerId][unitId] !== undefined ? parseFactoryAction(actions[playerId][unitId]) : null,
+          action:
+            actions[playerId] !== null && actions[playerId][unitId] !== undefined
+              ? parseFactoryAction(actions[playerId][unitId])
+              : null,
 
           lichen,
         });
@@ -246,7 +275,14 @@ export function parseLuxAIS2Episode(data: any, teamNames: [string, string] = ['P
       const robots: Robot[] = [];
       for (const unitId of Object.keys(obs.units[playerId])) {
         const rawRobot = obs.units[playerId][unitId];
-        const actionQueue = actions[playerId][unitId] !== undefined ? actions[playerId][unitId] : rawRobot.action_queue;
+        const actionQueue =
+          actions[playerId] !== null && actions[playerId][unitId] !== undefined
+            ? actions[playerId][unitId]
+            : rawRobot.action_queue;
+
+        if (actions[playerId] === null) {
+          error = 'Actions object is null';
+        }
 
         robots.push({
           unitId,
@@ -266,7 +302,7 @@ export function parseLuxAIS2Episode(data: any, teamNames: [string, string] = ['P
 
       const rawTeam = obs.teams[playerId];
       teams.push({
-        name: teamNames[j],
+        name: metadata.teamNames[j],
         faction: rawTeam.faction,
 
         water: rawTeam.water,
@@ -275,10 +311,14 @@ export function parseLuxAIS2Episode(data: any, teamNames: [string, string] = ['P
         factories,
         robots,
 
+        strains: new Set(rawTeam.factory_strains),
+
         placeFirst: rawTeam.place_first,
         factoriesToPlace: rawTeam.factories_to_place,
 
         action: isSetupAction(actions[playerId]) ? parseSetupAction(actions[playerId]) : null,
+
+        error,
       });
     }
     steps.push({
@@ -288,5 +328,5 @@ export function parseLuxAIS2Episode(data: any, teamNames: [string, string] = ['P
     });
   }
 
-  return { steps };
+  return { steps, metadata };
 }

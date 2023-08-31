@@ -1,5 +1,41 @@
 # ChangeLog
 
+### v2.1.9
+
+Fix bug where setuptools was causing runtime errors
+### v2.1.8
+
+fix bug on mac where non python kits assumed a windows platform
+
+store replay seed and player paths on CLI tool.
+
+visualizer shows the player paths as well as seed on kaggle and local replays
+
+
+### v2.1.7
+removed omegaconf as dependency
+
+
+### v2.1.6
+
+some bug fixes
+
+### v2.1.5
+
+verbosity is nicer and more bug fixes
+
+### v2.1.4
+
+Fix bug with action formatter not handling lists
+
+### v2.1.3
+
+Fix bug where calling reset with no seed crashes the engine.
+
+### v2.1.2
+
+Cast all numbers to ints, ensure all observations only contain ints, no floats.
+
 ### v2.1.1
 
 Remove max episode timesteps from gym registration of the Lux AI env. Expect user to specify themselves
