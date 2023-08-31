@@ -1,0 +1,26 @@
+changes to the rl tutorial notebook
+1, change second cell to :
+%%writefile C:\Users\josep\AppData\Local\Programs\Python\Python39\Lib\site-packages\luxai_s2\version.py
+__version__ = ""
+
+2, change from gym import spaces to  from gymnasium import spaces
+
+and places use spaces.Box to spaces.box.Box and spaces.Discrete to spaces.discrete.Discrete
+
+3, change the PPO cell to non-parrallel environment for now,  like:
+env = make_env("LuxAI_S2-v0", 0, max_episode_steps=200)()
+reset_ret = env.reset()
+
+eval_env = make_env("LuxAI_S2-v0", 0, max_episode_steps=1000)()
+eval_env.reset()
+
+4, add render_mode attribute to CustomEnvWrapper
+self.render_mode = 'human'
+
+steps
+1), replace the latest notebook
+2), clear output
+3), commit and push to github and make a separate develop branch
+4), on the develop branch make the above changes and commit
+
+do the same change to stable baseline3, train.py
